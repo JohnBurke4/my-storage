@@ -20,6 +20,14 @@ All cryptographic functions were gotten through the Crypto-JS and Node-RSA libra
 
 ### **Application Overview**
 
+The webapp allows users to login and create their own accounts. Google Authentification provides the infrastructure for the accounts. I pass in the users email and password to create an account.
+
+Once logged in, the user is brought to the files page. Here they can upload any number of files, which are encrypted and then stored in storage. These can be fetched and decoded for the user if they wish to view or download them.
+
+The groups tab allows the user to create and view their groups. If a group exists that they are part of, the user can view any files uploaded by any other member of the group and upload other files themselves. This storage is separate to the private storage seen in the files tab. A user can then add or remove another user from the group.
+
+Finally the Me tab allows the user to logout.
+
 ### **Key Management**
 
 Node-RSA provided the code to use public-key encryption. Each key was generated when a user was created. All I had to deal with was the storage. The public key cert was easy, this could simply be stored publically in the database as we wanted people to use it. This could then be accessed by anyone who had the users unique ID.
