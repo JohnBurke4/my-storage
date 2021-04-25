@@ -199,3 +199,16 @@ const convertWordArrayToUint8Array = (wordArray) => {
     }
     return uInt8Array;
 }
+
+export const deleteFile = async (fileId) => {
+    try{
+        const fileRef = storage.ref(fileId);
+        fileRef.delete().then(async () => {
+            await firestore.doc(`users/${auth.currentUser.uid}/files/${fileId}`).delete();
+        })
+    }
+    catch(error) {
+        console.error(error);
+    }
+    
+}

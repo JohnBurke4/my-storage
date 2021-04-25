@@ -1,6 +1,7 @@
 import React from 'react'
 import FileCard from './FileCard'
 import {uploadFilesToDatabase, getUserFileTypesAndIds} from '../api/Calls'
+import {getFile, deleteFile} from '../api/Calls'
 
 class FilesPage extends React.Component {
     constructor(props){
@@ -12,6 +13,9 @@ class FilesPage extends React.Component {
         }
         this.uploadFiles = this.uploadFiles.bind(this);
         this.setFiles = this.setFiles.bind(this);
+        
+        this.downloadFile = this.downloadFile.bind(this);
+        this.deleteFile = this.deleteFile.bind(this);
     }
 
     render() {
@@ -24,7 +28,7 @@ class FilesPage extends React.Component {
                     <div className='row align-items-center'>
                         {this.state.files.map((file) => {
                             return <div className='col m-3'>
-                                <FileCard mimeType={file.fileType} fileName={file.fileName} fileId={file.fileLocation} decryptionKey={file.decryptionKey} key={file.fileLocation}></FileCard>
+                                <FileCard mimeType={file.fileType} fileName={file.fileName} fileId={file.fileLocation} decryptionKey={file.decryptionKey} key={file.fileLocation} delete={this.deleteFile} downl={this.downloadFile}></FileCard>
                                 </div>
                         })}
                     </div>
@@ -60,6 +64,23 @@ class FilesPage extends React.Component {
         this.componentDidMount();
         
     }
+
+    async deleteFile(fileId) {
+        await deleteFile(fileId);
+        console.log('Deleted File');
+        setTimeout(() => {this.componentDidMount()}, 500);
+    }
+
+    async downloadFile(fileId, decryptionKey, mimeType, fileName) {
+        let file = await getFile(fileId, decryptionKey, mimeType);
+        let a = document.createElement('a');
+        let fileUrl = URL.createObjectURL(file);
+        a.href = fileUrl;
+        a.download = fileName;
+        a.click();
+    }
+
+
 }
 
 export default FilesPage;

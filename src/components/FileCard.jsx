@@ -1,11 +1,11 @@
 import React from 'react'
-import {getFile} from '../api/Calls'
 
 class FileCard extends React.Component {
     constructor(props) {
         super(props);
-    
+        
         this.downloadFile = this.downloadFile.bind(this);
+        this.deleteFile = this.deleteFile.bind(this);
     }
 
     render() {
@@ -28,7 +28,7 @@ class FileCard extends React.Component {
                     <div className='align-items-center row'>
 
                     <button type='button' className='btn btn-primary col ms-3 me-2' onClick={this.downloadFile}>View File</button>
-                    <button type='button' className='btn btn-danger col me-3 ms-2'>Delete File</button>
+                    <button type='button' className='btn btn-danger col me-3 ms-2' onClick={this.deleteFile}>Delete File</button>
                     </div>
                 </div>
             </div>
@@ -36,12 +36,11 @@ class FileCard extends React.Component {
     }
 
     async downloadFile() {
-        let file = await getFile(this.props.fileId, this.props.decryptionKey, this.props.mimeType);
-        let a = document.createElement('a');
-        let fileUrl = URL.createObjectURL(file);
-        a.href = fileUrl;
-        a.download = this.props.fileName;
-        a.click();
+        await this.props.downl(this.props.fileId, this.props.decryptionKey, this.props.mimeType, this.props.fileName);
+    }
+
+    async deleteFile() {
+        await this.props.delete(this.props.fileId);
     }
 }
 
