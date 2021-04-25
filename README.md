@@ -1,5 +1,3 @@
-#
-
 # **CSU34031 Advanced Telecommunications**
 
 ## **Secure Cloud Storage - John Burke - 18326420**
