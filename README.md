@@ -24,38 +24,36 @@ All cryptographic functions were gotten through the Crypto-JS and Node-RSA libra
 
 Node-RSA provided the code to use public-key encryption. Each key was generated when a user was created. All I had to deal with was the storage. The public key cert was easy, this could simply be stored publically in the database as we wanted people to use it. This could then be accessed by anyone who had the users unique ID.
 
-The private key was ultimately also stored in the database. However it was first encrypted by AES with the users password. This encrypted key is then pulled down every time the user logs in, decrypted using their password and stored in the sessionStorage. sessionStorage was used to ensure that the private key was wiped from storage when the user closed the app.
+The private key was ultimately also stored in the database. However it was first encrypted by AES with the users password. This encrypted key is then pulled down every time the user logs in, decrypted using their password and stored in the sessionStorage. SessionStorage was used to ensure that the private key was wiped from local storage when the user closed the app.
 
-```
-javascript
+```javascript
 export const getUserPrivateKeyAndDecrypt = async (password) => {
-    try {
-        const doc = await firestore.doc(`users/${auth.currentUser.uid}`).get();
-        const bytes = AES.decrypt(doc.data().privateKey, password);
-        const pk = bytes.toString(Utf8);
-        window.sessionStorage.setItem('privateKey', pk);
-        console.log(pk);
-    } catch (error) {
-        console.error("Error fetching user", error);
-    }
-}
+  try {
+    const doc = await firestore.doc(`users/${auth.currentUser.uid}`).get();
+    const bytes = AES.decrypt(doc.data().privateKey, password);
+    const pk = bytes.toString(Utf8);
+    window.sessionStorage.setItem("privateKey", pk);
+    console.log(pk);
+  } catch (error) {
+    console.error("Error fetching user", error);
+  }
+};
 ```
 
 These keys could then be used to decrypt file data and file decryption keys themselves:
 
-```
-javascript
+```javascript
 const encryptWithPublicKey = (pubK, message) => {
-    const key = new NodeRSA({b:512});
-    key.importKey(pubK);
-    return key.encrypt(message, 'base64').toString();
-}
+  const key = new NodeRSA({ b: 512 });
+  key.importKey(pubK);
+  return key.encrypt(message, "base64").toString();
+};
 
 const decryptWithPrivateKey = (priK, message) => {
-    const key = new NodeRSA({b:512});
-    key.importKey(priK);
-    return key.decrypt(message, 'utf8').toString();
-}
+  const key = new NodeRSA({ b: 512 });
+  key.importKey(priK);
+  return key.decrypt(message, "utf8").toString();
+};
 ```
 
 ### **File Encryption and Storage**
