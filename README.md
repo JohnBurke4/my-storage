@@ -1,70 +1,31 @@
-# Getting Started with Create React App
+#
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# **CSU34031 Advanced Telecommunications**
 
-## Available Scripts
+## **Secure Cloud Storage - John Burke - 18326420**
 
-In the project directory, you can run:
+The repository for this project can be found at [https://github.com/JohnBurke4/my-storage](https://github.com/JohnBurke4/my-storage) and a live deployment can be found at [https://my-storage.vercel.app/](https://my-storage.vercel.app/).
 
-### `npm start`
+### **Task**
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+The aim of this project is to develop a secure cloud storage application for Dropbox, Box, Google Drive, Office365 etc. For example, your application will secure all files that are uploaded to the cloud, such that only people that are part of your &quot;Secure Cloud Storage Group&quot; will be able to decrypt uploaded files. Any member of the group should be able to upload encrypted files to the cloud service. To all other users the files will be encrypted.
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+You are required to design and implement a suitable **key management** system for your application which employs **public-key certificates** that allows users of the system to **share files securely** , and also allows one to **add or remove users** from the group. You are free to implement your application for a desktop or mobile platform and make use of any open source cryptographic libraries.
 
-### `npm test`
+### **Approach Overview**
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+My application consists of a React Javascript frontend supported by a Google Firebase backend. Firebase provided secure user authentification through firebase auth, file storage with firebase storage and a document-led database with firestore.
 
-### `npm run build`
+All cryptographic functions were gotten through the Crypto-JS and Node-AES libraries.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### **Application Overview**
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### **Key Management**
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### \*\*File Encryption
 
-### `npm run eject`
+### **Group Function**
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+### **Code**
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+The code itself is too long to add to this PDF. It can all be found on my Github at [https://github.com/JohnBurke4/my-storage](https://github.com/JohnBurke4/my-storage). Similarly a live version of the web app can be found at [https://my-storage.vercel.app/](https://my-storage.vercel.app/).
