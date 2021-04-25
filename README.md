@@ -58,6 +58,128 @@ const decryptWithPrivateKey = (priK, message) => {
 
 ### **File Encryption and Storage**
 
+User and group files were encrypted using AES combined with the Public-Key Certs.
+
+First metadata about each file to be uploaded is extracted. This includes the files name and mimetype. A random uuid is then generated and used at the encryption key. The file is encrypted using this key through AES from the Crypto-JS library. This encrypted file is stored into the firebase storage. The metadata extracted previously, along with the file's location in the storage and the encryption key are then encrypted using the user's public key and saved to database.
+
+```javascript
+const encryptFile = (file, key) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      var wordArray = CryptoJS.lib.WordArray.create(reader.result);
+      var encrypted = CryptoJS.AES.encrypt(wordArray, key).toString();
+      var fileEnc = new Blob([encrypted]);
+      resolve(fileEnc);
+    };
+    reader.onerror = (err) => reject(err);
+    reader.readAsArrayBuffer(file);
+  });
+};
+
+export const uploadFilesToDatabase = async (fileList) => {
+  if (!fileList) return;
+
+  const doc = await firestore.doc(`users/${auth.currentUser.uid}`).get();
+  const pubKey = doc.data().publicKey;
+  const key = uuidv4();
+
+  const encryptedFiles = await encryptFiles(fileList, key);
+  const encryptedKey = encryptWithPublicKey(pubKey, key);
+  const userPath = `users/${auth.currentUser.uid}/files/`;
+  for (let i = 0; i < encryptedFiles.length; i++) {
+    let fileType = encryptWithPublicKey(pubKey, fileList[i].type);
+    let fileName = encryptWithPublicKey(pubKey, fileList[i].name);
+    const file = encryptedFiles[i];
+    let guid = uuidv4();
+    let fileReference = storage.ref().child(guid);
+    try {
+      let path = await fileReference.put(file).then((snapshot) => {
+        console.log("Uploaded file!");
+        return snapshot.metadata.fullPath;
+      });
+      const fileRef = await firestore.doc(userPath + guid);
+      await fileRef.set({
+        decryptionKey: encryptedKey,
+        fileLocation: path,
+        fileType: fileType,
+        fileName: fileName,
+      });
+    } catch (error) {
+      console.log(error);
+      return;
+    }
+  }
+};
+```
+
+To decrypt the files, the metadata is first pulled from the database and decrypted using the user's private key. This is displayed to the user in the Files page. If the user clicks on a file to download, the metadata is then used to find the encrypted file in the database, download it, decrypt it using the now decrypted decryption key, and add back it's name and mime-time. The decrypted file is then downloaded by the user.
+
+```javascript
+export const getUserFileTypesAndIds = async () => {
+  let fileArr = [];
+  try {
+    const pk = window.sessionStorage.getItem("privateKey");
+    const files = await firestore
+      .collection(`users/${auth.currentUser.uid}/files`)
+      .get()
+      .then((snapshot) => {
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          const name = decryptWithPrivateKey(pk, data.fileName);
+          const loc = data.fileLocation;
+          const decryptionKey = decryptWithPrivateKey(pk, data.decryptionKey);
+          console.log(decryptionKey);
+          const type = decryptWithPrivateKey(pk, data.fileType);
+          fileArr.push({
+            decryptionKey: decryptionKey,
+            fileLocation: loc,
+            fileType: type,
+            fileName: name,
+          });
+        });
+      });
+    return fileArr;
+  } catch (error) {
+    console.error("Error fetching user", error);
+  }
+};
+
+const decryptFile = (file, key, type) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      console.log(reader.result);
+      var decrypted = CryptoJS.AES.decrypt(reader.result, key);
+      var typedArray = convertWordArrayToUint8Array(decrypted);
+      var fileEnc = new Blob([typedArray], { type: type });
+      resolve(fileEnc);
+    };
+    reader.onerror = (err) => reject(err);
+    reader.readAsText(file);
+  });
+};
+// Function taken from https://stackoverflow.com/questions/60520526/aes-encryption-and-decryption-of-files-using-crypto-js
+const convertWordArrayToUint8Array = (wordArray) => {
+  var arrayOfWords = wordArray.hasOwnProperty("words") ? wordArray.words : [];
+  var length = wordArray.hasOwnProperty("sigBytes")
+    ? wordArray.sigBytes
+    : arrayOfWords.length * 4;
+  var uInt8Array = new Uint8Array(length),
+    index = 0,
+    word,
+    i;
+  for (i = 0; i < length; i++) {
+    word = arrayOfWords[i];
+    uInt8Array[index++] = word >> 24;
+    uInt8Array[index++] = (word >> 16) & 0xff;
+    uInt8Array[index++] = (word >> 8) & 0xff;
+    uInt8Array[index++] = word & 0xff;
+  }
+  return uInt8Array;
+};
+```
+
 ### **Group Function**
 
 ### **Code**
