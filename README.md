@@ -182,6 +182,107 @@ const convertWordArrayToUint8Array = (wordArray) => {
 
 ### **Group Function**
 
+Adding Groups was the most difficult part of this assignment. A group consists of an ID, name and a list of userIds. When a current user wishes to upload a file to the group, which is seperate to the user's private storage, it encrypts and saves the files as it normally would. However the file metadata as well as the encryption key is encrypted seperately for each user, with their own public key, and saved to their section of the database. This allows each user to decrypt the files and no one else to.
+
+```javascript
+export const uploadFilesToGroup = async (groupId, fileList) => {
+  if (!fileList) return;
+  try {
+    let userIds = [];
+    const groupUsersRef = firestore.collection(`groups/${groupId}/users`);
+    await groupUsersRef.get().then((snapshot) => {
+      snapshot.forEach((doc) => {
+        userIds.push(doc.data().userId);
+      });
+    });
+
+    let fileData = [];
+    const key = uuidv4();
+    const encryptedFiles = await encryptFiles(fileList, key);
+    for (let i = 0; i < encryptedFiles.length; i++) {
+      let fileType = fileList[i].type;
+      let fileName = fileList[i].name;
+      const file = encryptedFiles[i];
+      let guid = uuidv4();
+      let fileReference = storage.ref().child(guid);
+      let path = await fileReference.put(file).then((snapshot) => {
+        console.log("Uploaded file!");
+        return snapshot.metadata.fullPath;
+      });
+
+      fileData.push({
+        fileType: fileType,
+        fileName: fileName,
+        fileLocation: path,
+      });
+    }
+
+    for (let i = 0; i < fileData.length; i++) {
+      for (let j = 0; j < userIds.length; j++) {
+        const doc = await firestore.doc(`users/${userIds[j]}`).get();
+        const pubKey = doc.data().publicKey;
+        const fileType = encryptWithPublicKey(pubKey, fileData[i].fileType);
+        const fileName = encryptWithPublicKey(pubKey, fileData[i].fileName);
+        const encryptedKey = encryptWithPublicKey(pubKey, key);
+        const userPath = `users/${userIds[j]}/groups/${groupId}/files/`;
+        const fileRef = firestore.doc(userPath + fileData[i].fileLocation);
+        await fileRef.set({
+          decryptionKey: encryptedKey,
+          fileLocation: fileData[i].fileLocation,
+          fileType: fileType,
+          fileName: fileName,
+        });
+      }
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};
+```
+
+Fetching the group files for each user functions the same as fetching the data for the individual files for each user.
+
+A user can be added to the group by anyone already in the group. When added, all the group file's metadata is decrypted by the person who added the new user, and then reencrypted with the new users public key and uplaoded to their section of the database. To remove a user, all references to the group relating to the user are deleted.
+
+```javascript
+export const addToGroup = async (userId, groupId) => {
+  const groupRef = firestore.doc(`groups/${groupId}/users/${userId}`);
+  const email = await getUserEmail(userId);
+  await groupRef.set({
+    userId: userId,
+    userEmail: email,
+  });
+
+  const userGroupRef = firestore.doc(`users/${userId}/groups/${groupId}`);
+  await userGroupRef.set({
+    groupId: groupId,
+  });
+  const doc = await firestore.doc(`users/${userId}`).get();
+  const pubKey = doc.data().publicKey;
+  let groupFiles = await getGroupFiles(groupId);
+  for (let i = 0; i < groupFiles.length; i++) {
+    const userPath = `users/${userId}/groups/${groupId}/files/`;
+    const fileRef = firestore.doc(userPath + groupFiles[i].fileLocation);
+    await fileRef.set({
+      decryptionKey: encryptWithPublicKey(pubKey, groupFiles[i].decryptionKey),
+      fileLocation: groupFiles[i].fileLocation,
+      fileType: encryptWithPublicKey(pubKey, groupFiles[i].fileType),
+      fileName: encryptWithPublicKey(pubKey, groupFiles[i].fileName),
+    });
+  }
+};
+
+export const removeUserFromGroup = async (userId, groupId) => {
+  const groupRef = firestore.doc(`groups/${groupId}/users/${userId}`);
+  await groupRef.delete();
+
+  const userGroupRef = firestore.doc(`users/${userId}/groups/${groupId}`);
+  await userGroupRef.delete();
+};
+```
+
+As each file uploaded to the storage is encrypted, no one else can access it except for those in the group, who can decrypt the encryption key.
+
 ### **Code**
 
-The code itself is too long to add to this PDF. It can all be found on my Github at [https://github.com/JohnBurke4/my-storage](https://github.com/JohnBurke4/my-storage). Similarly a live version of the web app can be found at [https://my-storage.vercel.app/](https://my-storage.vercel.app/).
+The rest of the code is too long to add to this PDF. It can all be found on my Github at [https://github.com/JohnBurke4/my-storage](https://github.com/JohnBurke4/my-storage). Similarly a live version of the web app can be found at [https://my-storage.vercel.app/](https://my-storage.vercel.app/).
