@@ -1,5 +1,6 @@
 import React from 'react'
 import firebase from 'firebase'
+import {addToGroupEmail} from '../api/Calls'
 
 class MePage extends React.Component {
     render() {

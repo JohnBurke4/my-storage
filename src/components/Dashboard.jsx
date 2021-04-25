@@ -24,7 +24,7 @@ class Dashboard extends React.Component {
               <Link className='nav-link' to="/">Files</Link>
             </li>
             <li className='nav-item'>
-              <Link className='nav-link' to="/users">Users</Link>
+              <Link className='nav-link' to="/users">Groups</Link>
             </li>
             <li className='nav-item'>
               <Link className='nav-link' to="/me">Me</Link>

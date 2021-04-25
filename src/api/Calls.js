@@ -212,3 +212,197 @@ export const deleteFile = async (fileId) => {
     }
     
 }
+
+const getUserEmail = async (userId) => {
+    const userRef = firestore.doc(`users/${userId}`);
+    return (await userRef.get()).data().email;
+}
+
+export const addToGroup = async (userId, groupId) => {
+    const groupRef = firestore.doc(`groups/${groupId}/users/${userId}`);
+    const email = await getUserEmail(userId);
+    await groupRef.set({
+        userId: userId,
+        userEmail: email
+    });
+
+    const userGroupRef = firestore.doc(`users/${userId}/groups/${groupId}`);
+    await userGroupRef.set({
+        groupId: groupId
+    })
+    const doc = await firestore.doc(`users/${userId}`).get();
+    const pubKey = doc.data().publicKey;
+    let groupFiles = await getGroupFiles(groupId);
+    for (let i = 0; i < groupFiles.length; i++){
+        
+        const userPath = `users/${userId}/groups/${groupId}/files/`;
+        const fileRef = firestore.doc(userPath + groupFiles[i].fileLocation);
+        await fileRef.set({
+            decryptionKey: encryptWithPublicKey(pubKey, groupFiles[i].decryptionKey),
+            fileLocation: groupFiles[i].fileLocation,
+            fileType: encryptWithPublicKey(pubKey, groupFiles[i].fileType),
+            fileName: encryptWithPublicKey(pubKey, groupFiles[i].fileName),
+        });
+    }
+}
+
+export const addToGroupEmail = async (userEmail, groupId) => {
+    await firestore.collection(`users`).get().then((snapshot) => {
+        snapshot.forEach(async (doc) => {
+            console.log(doc.data().email);
+            if (doc.data().email === userEmail){
+                await addToGroup(doc.id, groupId);
+                return;
+            }
+        });
+    });
+}
+
+
+export const createGroup = async (groupName) => {
+    let groupId = uuidv4();
+    const groupRef = firestore.doc(`groups/${groupId}`);
+    // Creating Group
+    await groupRef.set({
+        groupName: groupName,
+        groupId: groupId,
+    });
+    // Adding initial user to group
+    await addToGroup(auth.currentUser.uid, groupId);
+}
+
+export const getMyGroups = async () => {
+    let groupIds = [];
+    let tempCollections = [];
+    await firestore.collection(`users/${auth.currentUser.uid}/groups`).get().then((snapshot) => {
+        snapshot.forEach((doc) => {
+            tempCollections.push(doc.data());
+        });
+    });
+
+    for (const collection of tempCollections) {
+        const groupId = collection.groupId;
+        const groupName = await getGroupName(groupId);
+        groupIds.push({
+            groupName: groupName,
+            groupId: groupId
+        });
+    }
+    return groupIds;
+}
+
+export const getGroupName = async (groupId) => {
+    const groupRef = firestore.doc(`groups/${groupId}`);
+    return (await groupRef.get()).data().groupName;
+}
+
+export const uploadFilesToGroup = async (groupId, fileList) => {
+    if (!fileList) return;
+    try {
+        let userIds = []
+        const groupUsersRef = firestore.collection(`groups/${groupId}/users`);
+        await groupUsersRef.get().then((snapshot) => {
+            snapshot.forEach((doc) => {
+                userIds.push(doc.data().userId);
+            });
+        })
+
+        
+        let fileData = [];
+        const key =  uuidv4();     
+        const encryptedFiles = await encryptFiles(fileList, key);
+        for (let i = 0; i < encryptedFiles.length; i++){
+            let fileType = fileList[i].type;
+            let fileName = fileList[i].name;
+            const file = encryptedFiles[i];
+            let guid = uuidv4();
+            let fileReference = storage.ref().child(guid);
+            let path = await fileReference.put(file).then((snapshot) => {
+                console.log('Uploaded file!');
+                return snapshot.metadata.fullPath;
+            });
+
+            fileData.push({
+                fileType: fileType,
+                fileName: fileName,
+                fileLocation: path
+            })
+        }
+
+        console.log(fileData.length);
+        console.log(userIds.length);
+
+        for (let i = 0; i < fileData.length; i++){
+            for(let j = 0; j < userIds.length; j++) {
+                const doc = await firestore.doc(`users/${userIds[j]}`).get();
+                const pubKey = doc.data().publicKey;
+                const fileType = encryptWithPublicKey(pubKey, fileData[i].fileType);
+                const fileName = encryptWithPublicKey(pubKey, fileData[i].fileName);
+                const encryptedKey = encryptWithPublicKey(pubKey, key);
+                const userPath = `users/${userIds[j]}/groups/${groupId}/files/`;
+                const fileRef = firestore.doc(userPath + fileData[i].fileLocation);
+                await fileRef.set({
+                    decryptionKey: encryptedKey,
+                    fileLocation: fileData[i].fileLocation,
+                    fileType: fileType,
+                    fileName: fileName
+                });
+                console.log(fileData[i]);
+
+            }
+        }
+
+    }
+    catch(error){
+        console.error(error);
+    }
+    
+}
+
+export const getGroupFiles = async (groupId) => {
+    let fileArr = []
+    try {
+        const pk = window.sessionStorage.getItem('privateKey');
+        const files = await firestore.collection(`users/${auth.currentUser.uid}/groups/${groupId}/files`).get().then((snapshot) => {
+            snapshot.forEach((doc) => {
+            const data = doc.data();
+            const name = decryptWithPrivateKey(pk, data.fileName);
+            const loc = data.fileLocation;
+            const decryptionKey= decryptWithPrivateKey(pk, data.decryptionKey);
+            console.log(decryptionKey);
+            const type = decryptWithPrivateKey(pk, data.fileType);
+            fileArr.push({
+                decryptionKey: decryptionKey,
+                fileLocation: loc,
+                fileType: type,
+                fileName: name,
+            });
+          });
+      });
+      return fileArr;
+    } catch (error) {
+      console.error("Error fetching user", error);
+    }
+    return [];
+}
+
+export const removeUserFromGroup = async (userId, groupId) => {
+    const groupRef = firestore.doc(`groups/${groupId}/users/${userId}`);
+    await groupRef.delete();
+
+    const userGroupRef = firestore.doc(`users/${userId}/groups/${groupId}`);
+    await userGroupRef.delete();
+
+}
+
+export const removeFromGroupEmail = async (userEmail, groupId) => {
+    await firestore.collection(`users`).get().then((snapshot) => {
+        snapshot.forEach(async (doc) => {
+            console.log(doc.data().email);
+            if (doc.data().email === userEmail){
+                await removeUserFromGroup(doc.id, groupId);
+                return;
+            }
+        });
+    });
+}

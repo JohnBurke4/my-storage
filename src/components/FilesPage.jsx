@@ -26,8 +26,8 @@ class FilesPage extends React.Component {
                 </div>
                 <div className='d-flex m-5 justify-content-center'>
                     <div className='row align-items-center'>
-                        {this.state.files.map((file) => {
-                            return <div className='col m-3'>
+                        {this.state.files.map((file, i) => {
+                            return <div  key={i} className='col m-3'>
                                 <FileCard mimeType={file.fileType} fileName={file.fileName} fileId={file.fileLocation} decryptionKey={file.decryptionKey} key={file.fileLocation} delete={this.deleteFile} downl={this.downloadFile}></FileCard>
                                 </div>
                         })}
